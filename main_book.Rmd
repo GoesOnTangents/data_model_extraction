@@ -1,0 +1,184 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r setup}
+library(here)
+library(ggplot2)
+library(dplyr)
+```
+
+
+```{r load data}
+EL.1 <- read.csv(here("data", "bpi17.csv"))
+#offerID is empty string instead of NA
+EL.1$OfferID <- ifelse((EL.1$OfferID == ""), NA, EL.1$OfferID) 
+EL.2 <- read.csv(here("data", "bpi17_offer_log.csv"))
+
+PermitLog <- read.csv(here("data", "PermitLog.csv"))
+PermitLog[PermitLog == ""] <- NA
+InternationalDeclarations <- read.csv(here("data", "InternationalDeclarations.csv"))
+DomesticDeclarations <- read.csv(here("data", "DomesticDeclarations.csv"))
+RequestForPayment <- read.csv(here("data", "RequestForPayment.csv"))
+PrepaidTravelCost <- read.csv(here("data", "PrepaidTravelCost.csv"))
+```
+
+```{r}
+bano.a2a <- function(df, relative = FALSE) {
+  if(relative == FALSE){
+    df %>% 
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x))))
+  } else {
+    df %>% 
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x)) * n()))
+  }
+  
+}
+```
+
+```{r }
+names.1 <- colnames(EL.1)
+names.2 <- colnames(EL.2)
+
+
+cat("Columns only in log.1:", names.1[!names.1 %in% names.2], "\n",
+    "Columns only in log.2:", names.2[!names.2 %in% names.1])
+```
+
+```{r Approach 0}
+#Rule 1 not applicable
+
+#Rule 3
+EL.offerless <- EL.1[!EL.1$Activity == "O_Create Offer", ]
+# only "O_Create Offer" has any values in FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, Selected, CreditScore, OfferedAmount
+
+
+
+EL.NAfree <- EL.offerless[!is.na(EL.offerless$CreditScore), ] #empty
+
+# EL COMPLEMENT E_A1 => E_A2 = NA 
+# => E_A1 UNION E_A2 = E_A1
+# => "O_Create Offer" is an isolated Activity with non-isolated attributes (FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, Selected, CreditScore, OfferedAmount), with ONE class.
+
+
+#-------------------------------------------
+#Rule 2
+EL.OfferID.exists <- EL.1[!is.na(EL.1$OfferID), ]
+#head(EL.OfferID.exists)
+activities.offerID.access <- unique(EL.OfferID.exists$Activity)
+#cat(c("Rule 2 fulfilled by: ", activities.offerID.access, "\n")) #Activities accessing Attr "OfferID"
+
+
+#Rule 4
+EL.Remaining <- EL.offerless[! EL.offerless$Activity %in% activities.offerID.access, ]
+#cat(c("OfferID empty?", sum(is.na(EL.Remaining$OfferID)) == nrow(EL.Remaining), "\n"))
+#cat(c("OfferedAmount empty?", sum(is.na(EL.Remaining$OfferedAmount)) == nrow(EL.Remaining)))
+# => Everything remaining accesses everything
+
+
+
+#===>
+#3. FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, Selected, CreditScore, OfferedAmount
+#2. OfferID accessed by O_Created, O_Sent, O_Returned O_Accepted O_Refused O_Cancelled O_Sent
+#4. Everything else
+
+
+cat(c("Rule 1: ", "not applicable", "\n"))
+cat(c("Rule 2: ", unique(EL.OfferID.exists$Activity), "\n"))
+cat(c("Rule 3: ", "FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, Selected, CreditScore, OfferedAmount", "\n"))
+cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Action, LoanGoal, ApplicationType, RequestedAmount", "\n"))
+```
+
+```{r Approach 1}
+EL.1.a2a <- bano.a2a(EL.1)
+EL.2.a2a <- bano.a2a(EL.2)
+
+EL.union <- bind_rows(EL.1, EL.2)
+#EL.union.Offerless <- EL.union[! EL.union$Activity == "O_Create Offer", ]
+#EL.union.NAfree <- EL.union.Offerless[! is.na(EL.union.Offerless$CreditScore), ]
+EL.union.a2a <- bano.a2a(EL.union)
+#temp <- bano.a2a(EL.union, relative = TRUE)
+```
+
+```{r Similarity}
+positionalSimilarity <- function(){
+
+}
+
+occurenceSimilarity <- function(){
+  
+}
+durationSimilarity <- function(){
+  
+}
+attributeNameSimilarity <- function(){
+  
+}
+attributeValueSimilarity <- function(){
+  
+}
+prerequisiteSimilarity <- function(){
+  
+}
+```
+
+```{r Graphing}
+library(igraph)
+library(textshape)
+inc <- EL.union.a2a
+inc <- column_to_rownames(inc, 1)
+g <- graph_from_incidence_matrix(inc, multiple = FALSE)
+
+l <- layout.bipartite(g, vgap = 0.1)
+plot(g, layout=l[ , c(2,1)],
+     vertex.label.cex=0.75, 
+     vertex.label.family="Helvetica",
+     vertex.label.font=1,
+     
+     vertex.shape="circle", 
+     vertex.size=1, 
+     vertex.label.color="black",
+     edge.width=1,
+     asp = 0.5,
+     margin = 0)
+```
+
+
+```{r bpi2020}
+union.all <- bind_rows(DomesticDeclarations, InternationalDeclarations, PermitLog, PrepaidTravelCost, RequestForPayment)
+union.all.a2a <- bano.a2a(union.all)
+
+temp <- union.all %>% 
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
+
+```
+
+
+```{r mock}
+eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
+eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
+eventlogmockP1[eventlogmockP1 == ""] <- NA
+eventlogmockP2[eventlogmockP2 == ""] <- NA
+
+mock1.bano <- bano.a2a(eventlogmockP1)
+mock2.bano <- bano.a2a(eventlogmockP2)
+
+m.count <- union.all %>% 
+      group_by(Activity) %>%
+      summarise(total = n())
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
