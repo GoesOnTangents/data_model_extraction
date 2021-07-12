@@ -3,44 +3,117 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
 ```{r setup}
 library(here)
 library(ggplot2)
 library(dplyr)
-```
 
+OfferApplications <- read.csv(here("data", "bpi17.csv"))
+OfferApplications[OfferApplications == ""] <- NA 
+Offers <- read.csv(here("data", "bpi17_offer_log.csv"))
+Offers[Offers == ""] <- NA
 
-```{r load data}
-EL.1 <- read.csv(here("data", "bpi17.csv"))
-#offerID is empty string instead of NA
-EL.1$OfferID <- ifelse((EL.1$OfferID == ""), NA, EL.1$OfferID) 
-EL.2 <- read.csv(here("data", "bpi17_offer_log.csv"))
-
-PermitLog <- read.csv(here("data", "PermitLog.csv"))
-PermitLog[PermitLog == ""] <- NA
+Permits <- read.csv(here("data", "PermitLog.csv"))
+Permits[Permits == ""] <- NA
 InternationalDeclarations <- read.csv(here("data", "InternationalDeclarations.csv"))
+InternationalDeclarations[InternationalDeclarations == ""] <- NA
 DomesticDeclarations <- read.csv(here("data", "DomesticDeclarations.csv"))
+DomesticDeclarations[DomesticDeclarations == ""] <- NA
 RequestForPayment <- read.csv(here("data", "RequestForPayment.csv"))
+RequestForPayment[RequestForPayment == ""] <- NA
 PrepaidTravelCost <- read.csv(here("data", "PrepaidTravelCost.csv"))
-```
+PrepaidTravelCost[PrepaidTravelCost == ""] <- NA
 
-```{r}
 bano.a2a <- function(df, relative = FALSE) {
   if(relative == FALSE){
     df %>% 
       group_by(Activity) %>%
       summarise(across(everything(), ~ sum(!is.na(.x))))
   } else {
-    df %>% 
+    #accessCount <- df %>% 
+    #  group_by(Activity) %>%
+    #  summarise(total = n())
+  #  
+  #  df <- df %>% 
+  #    group_by(Activity) %>%
+  #    summarise(across(everything(), ~ sum(!is.na(.x))))
+  #  
+  #  df[2:ncol(df)] <- lapply(df[2:ncol(df)], as.numeric)
+  #  for(i in (1:nrow(df))){
+  #    currentActivity <- df$Activity[i]
+  #    for(j in (2:ncol(df))){
+  #      df[df$Activity == currentActivity, j] <- df[df$Activity == currentActivity, j] / accessCount[accessCount$Activity == currentActivity, 2] 
+  #    }
+  #  }
+  #  df
+    df %>%
       group_by(Activity) %>%
-      summarise(across(everything(), ~ sum(!is.na(.x)) * n()))
+      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
   }
+}
+```
+
+
+```{r Similarity}
+positionalSimilarity <- function(){
+
+}
+
+occurenceSimilarity <- function(){
   
 }
+durationSimilarity <- function(){
+  
+}
+attributeNameSimilarity <- function(){
+  
+}
+attributeValueSimilarity <- function(){
+  
+}
+prerequisiteSimilarity <- function(){
+  
+}
+```
+
+
+```{r bpi2017}
+OfferApplications.a2a <- bano.a2a(OfferApplications)
+OfferApplications.a2a.relative <- bano.a2a(OfferApplications, relative = TRUE)
+Offers.a2a <- bano.a2a(Offers)
+
+Offer.union <- bind_rows(OfferApplications, Offers)
+Offer.union.a2a <- bano.a2a(Offer.union)
+Offers.a2a.relative <- bano.a2a(Offers, relative = TRUE)
+Offer.union.a2a.relative <- bano.a2a(Offer.union, relative = TRUE)
+
+```
+
+
+```{r bpi2020}
+union.all <- bind_rows(DomesticDeclarations, InternationalDeclarations, PermitLog, PrepaidTravelCost, RequestForPayment)
+union.all.a2a <- bano.a2a(union.all)
+
+Permits.a2a <- bano.a2a(Permits, relative = TRUE)
+head(Permits.a2a)
+
+```
+
+
+```{r mock}
+eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
+eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
+eventlogmockP1[eventlogmockP1 == ""] <- NA
+eventlogmockP2[eventlogmockP2 == ""] <- NA
+
+mock1.bano <- bano.a2a(eventlogmockP1)
+mock2.bano <- bano.a2a(eventlogmockP2)
+
+
+
+```
+```{r}
+
 ```
 
 ```{r }
@@ -58,8 +131,6 @@ cat("Columns only in log.1:", names.1[!names.1 %in% names.2], "\n",
 #Rule 3
 EL.offerless <- EL.1[!EL.1$Activity == "O_Create Offer", ]
 # only "O_Create Offer" has any values in FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, Selected, CreditScore, OfferedAmount
-
-
 
 EL.NAfree <- EL.offerless[!is.na(EL.offerless$CreditScore), ] #empty
 
@@ -96,39 +167,6 @@ cat(c("Rule 3: ", "FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, 
 cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Action, LoanGoal, ApplicationType, RequestedAmount", "\n"))
 ```
 
-```{r Approach 1}
-EL.1.a2a <- bano.a2a(EL.1)
-EL.2.a2a <- bano.a2a(EL.2)
-
-EL.union <- bind_rows(EL.1, EL.2)
-#EL.union.Offerless <- EL.union[! EL.union$Activity == "O_Create Offer", ]
-#EL.union.NAfree <- EL.union.Offerless[! is.na(EL.union.Offerless$CreditScore), ]
-EL.union.a2a <- bano.a2a(EL.union)
-#temp <- bano.a2a(EL.union, relative = TRUE)
-```
-
-```{r Similarity}
-positionalSimilarity <- function(){
-
-}
-
-occurenceSimilarity <- function(){
-  
-}
-durationSimilarity <- function(){
-  
-}
-attributeNameSimilarity <- function(){
-  
-}
-attributeValueSimilarity <- function(){
-  
-}
-prerequisiteSimilarity <- function(){
-  
-}
-```
-
 ```{r Graphing}
 library(igraph)
 library(textshape)
@@ -149,36 +187,18 @@ plot(g, layout=l[ , c(2,1)],
      asp = 0.5,
      margin = 0)
 ```
-
-
-```{r bpi2020}
-union.all <- bind_rows(DomesticDeclarations, InternationalDeclarations, PermitLog, PrepaidTravelCost, RequestForPayment)
-union.all.a2a <- bano.a2a(union.all)
-
-temp <- union.all %>% 
-      group_by(Activity) %>%
-      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
-
-```
-
-
-```{r mock}
-eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
-eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
-eventlogmockP1[eventlogmockP1 == ""] <- NA
-eventlogmockP2[eventlogmockP2 == ""] <- NA
-
-mock1.bano <- bano.a2a(eventlogmockP1)
-mock2.bano <- bano.a2a(eventlogmockP2)
-
-m.count <- union.all %>% 
-      group_by(Activity) %>%
-      summarise(total = n())
-
-```
-
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+
+
+```{r}
+temp <- Offer.union %>% 
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
+temp2 <- bano.a2a(Offer.union, relative = TRUE)
+```
+
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
