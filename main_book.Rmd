@@ -24,6 +24,11 @@ RequestForPayment[RequestForPayment == ""] <- NA
 PrepaidTravelCost <- read.csv(here("data", "PrepaidTravelCost.csv"))
 PrepaidTravelCost[PrepaidTravelCost == ""] <- NA
 
+eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
+eventlogmockP1[eventlogmockP1 == ""] <- NA
+eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
+eventlogmockP2[eventlogmockP2 == ""] <- NA
+
 bano.a2a <- function(df, relative = FALSE) {
   if(relative == FALSE){
     df %>% 
@@ -91,25 +96,20 @@ Offer.union.a2a.relative <- bano.a2a(Offer.union, relative = TRUE)
 
 
 ```{r bpi2020}
-union.all <- bind_rows(DomesticDeclarations, InternationalDeclarations, PermitLog, PrepaidTravelCost, RequestForPayment)
-union.all.a2a <- bano.a2a(union.all)
+permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
+permits.a2a <- bano.a2a(permits.union)
 
-Permits.a2a <- bano.a2a(Permits, relative = TRUE)
-head(Permits.a2a)
+permits.a2a.rel <- bano.a2a(Permits, relative = TRUE)
+
 
 ```
 
 
 ```{r mock}
-eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
-eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
-eventlogmockP1[eventlogmockP1 == ""] <- NA
-eventlogmockP2[eventlogmockP2 == ""] <- NA
+
 
 mock1.bano <- bano.a2a(eventlogmockP1)
 mock2.bano <- bano.a2a(eventlogmockP2)
-
-
 
 ```
 ```{r}
