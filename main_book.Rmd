@@ -7,6 +7,7 @@ output: html_notebook
 library(here)
 library(ggplot2)
 library(dplyr)
+library(tidyverse)
 
 bano.a2a <- function(df, relative = FALSE) {
   if(relative == FALSE){
@@ -26,60 +27,85 @@ dropSuperfluousAttributes <- function(df, dropCols = NULL) {
   }
   df %>% select(-contains(dropCols))
 }
+
+replaceEmptyWithNA <- function(df, keepZeroes = FALSE) {
+  df[df == ""] <- NA
+  if(keepZeroes == FALSE) df[df == "0"] <- NA
+  df
+}
+
+rule5.setup <- function(a2a) {
+  df <- slice(a2a, 0)
+  df <- bind_rows(df, a2a %>% select(Activity))
+  df[is.na(df)] <- 0
+  df
+}
+
+rule5.fill <- function(scaffold, a2a) {
+  columns <- colnames(a2a)
+  rows <- rownames(a2a)
+  for(c in columns) {
+    for(r in rows) {
+      scaffold[r, c] <- a2a[r, c]
+    }
+  }
+  scaffold
+}
+```
+
+```{r}
+t <- rule5.fill(permits.scaffold, RequestForPayment.a2a)
+s <- rule5.fill(permits.scaffold, Permits.a2a)
+z <- t[,-1] +s[,-1]
+#TODO HEEEEEEEEEEERE
+```
+
+```{r dataLoading Offers}
+# This dataset makes a distinction between NA and 0, so 0 stays.
+OfferApplications.orig <- read.csv(here("data", "bpi17.csv"))
+OfferApplicatrmions <- dropSuperfluousAttributes(OfferApplications.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
+OfferApplications <- replaceEmptyWithNA(OfferApplications, keepZeroes = TRUE)
+Offers.orig <- read.csv(here("data", "bpi17_offer_log.csv"))
+Offers <- dropSuperfluousAttributes(Offers.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
+Offers <- replaceEmptyWithNA(Offers, keepZeroes = TRUE)
 ```
 
 
-```{r dataLoading}
-OfferApplications <- read.csv(here("data", "bpi17.csv"))
-OfferApplications <- dropSuperfluousAttributes(OfferApplications, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
-OfferApplications[OfferApplications == ""] <- NA 
-OfferApplications[OfferApplications == 0] <- NA
-Offers <- read.csv(here("data", "bpi17_offer_log.csv"))
-Offers[Offers == ""] <- NA
-Offers[Offers == 0] <- NA
+```{r dataLoading Permits}
+Permits.orig <- read.csv(here("data", "PermitLog.csv"))
+Permits <- replaceEmptyWithNA(Permits.orig)
+Permits <- dropSuperfluousAttributes(Permits)
 
-Permits <- read.csv(here("data", "PermitLog.csv"))
-Permits[Permits == ""] <- NA
-InternationalDeclarations <- read.csv(here("data", "InternationalDeclarations.csv"))
-InternationalDeclarations[InternationalDeclarations == ""] <- NA
-DomesticDeclarations <- read.csv(here("data", "DomesticDeclarations.csv"))
-DomesticDeclarations[DomesticDeclarations == ""] <- NA
-RequestForPayment <- read.csv(here("data", "RequestForPayment.csv"))
-RequestForPayment[RequestForPayment == ""] <- NA
-PrepaidTravelCost <- read.csv(here("data", "PrepaidTravelCost.csv"))
-PrepaidTravelCost[PrepaidTravelCost == ""] <- NA
+InternationalDeclarations.orig <- read.csv(here("data", "InternationalDeclarations.csv"))
+InternationalDeclarations <- replaceEmptyWithNA(InternationalDeclarations.orig)
+InternationalDeclarations <- dropSuperfluousAttributes(InternationalDeclarations)
 
+DomesticDeclarations.orig <- read.csv(here("data", "DomesticDeclarations.csv"))
+DomesticDeclarations <- replaceEmptyWithNA(DomesticDeclarations.orig)
+DomesticDeclarations <- dropSuperfluousAttributes(DomesticDeclarations)
+
+RequestForPayment.orig <- read.csv(here("data", "RequestForPayment.csv"))
+RequestForPayment <- replaceEmptyWithNA(RequestForPayment.orig)
+RequestForPayment <- dropSuperfluousAttributes(RequestForPayment)
+
+PrepaidTravelCost.orig <- read.csv(here("data", "PrepaidTravelCost.csv"))
+PrepaidTravelCost <- replaceEmptyWithNA(PrepaidTravelCost.orig)
+PrepaidTravelCost <- dropSuperfluousAttributes(PrepaidTravelCost)
+```
+
+
+```{r dataLoading Mock}
 eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
 eventlogmockP1[eventlogmockP1 == ""] <- NA
 eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
 eventlogmockP2[eventlogmockP2 == ""] <- NA
-
-RoadTraffic <- read.csv("D:/uni/bpm/data/Road_Traffic_Fine_Management_Process.csv")
-RoadTraffic[RoadTraffic == ""] <- NA
-RoadTraffic[RoadTraffic == 0] <- NA
 ```
 
 
-```{r Similarity}
-positionalSimilarity <- function(){
-
-}
-
-occurenceSimilarity <- function(){
-  
-}
-durationSimilarity <- function(){
-  
-}
-attributeNameSimilarity <- function(){
-  
-}
-attributeValueSimilarity <- function(){
-  
-}
-prerequisiteSimilarity <- function(){
-  
-}
+```{r dataLoading Traffic}
+RoadTraffic <- read.csv("D:/uni/bpm/data/Road_Traffic_Fine_Management_Process.csv")
+RoadTraffic[RoadTraffic == ""] <- NA
+RoadTraffic[RoadTraffic == 0] <- NA
 ```
 
 
@@ -100,29 +126,55 @@ Offers <- dropSuperfluousAttributes(Offers)
 
 
 ```{r bpi2020}
+Permits.a2a <- bano.a2a(Permits, relative = TRUE)
+DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations)
+InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations)
+PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost)
+RequestForPayment.a2a <- bano.a2a(RequestForPayment)
+
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
-permits.union.a2a <- bano.a2a(permits.union)
+permits.union.a2a <- bano.a2a(permits.union, relative = TRUE)
+
+permits.scaffold <- rule5.setup(permits.union.a2a)
 
 permits.union.a2a.rel <- bano.a2a(Permits, relative = TRUE)
-Permits.a2a <- bano.a2a(Permits, relative = TRUE)
+Permits.a2a <- bano.a2a(Permits)
 PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost, relative = TRUE)
 RequestForPayment.a2a <- bano.a2a(RequestForPayment, relative = TRUE)
 DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations, relative = TRUE)
 InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations, relative = TRUE)
+
+intersect(colnames(Permits.a2a), colnames(DomesticDeclarations.a2a))
+
+
+
+
+smolPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
+smolDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id, org.role)
+smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+smolRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
+smolPrepaidTravelCosts <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id, Permit.id)
+
+smolUnion <- bind_rows(smolPermits, smolDomesticDeclarations, smolInternationalDeclarations, smolRequestForPayment, smolPrepaidTravelCosts)
+smolUnion.a2a <- bano.a2a(smolUnion)
+smolPermits.a2a <- bano.a2a(smolPermits)
+smolPermits.a2a.rel <- bano.a2a(smolPermits, relative = TRUE)
+smolDomesticDeclarations.a2a <- bano.a2a(smolDomesticDeclarations)
+smolInternationalDeclarations.a2a <- bano.a2a(smolInternationalDeclarations)
+smolRequestForPayment.a2a <- bano.a2a(smolRequestForPayment)
+smolPrepaidTravelCosts.a2a <- bano.a2a(smolPrepaidTravelCosts)
 
 
 ```
 
 
 ```{r mock}
-
-
 mock1.bano <- bano.a2a(eventlogmockP1)
 mock2.bano <- bano.a2a(eventlogmockP2)
 
 ```
-```{r}
 
+```{r}
 ```
 
 ```{r }
@@ -237,6 +289,26 @@ summary(RoadTraffic$points)
 
 ```
 
+```{r Similarity}
+positionalSimilarity <- function(){
 
+}
+
+occurenceSimilarity <- function(){
+  
+}
+durationSimilarity <- function(){
+  
+}
+attributeNameSimilarity <- function(){
+  
+}
+attributeValueSimilarity <- function(){
+  
+}
+prerequisiteSimilarity <- function(){
+  
+}
+```
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
