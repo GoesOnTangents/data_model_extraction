@@ -8,10 +8,35 @@ library(here)
 library(ggplot2)
 library(dplyr)
 
+bano.a2a <- function(df, relative = FALSE) {
+  if(relative == FALSE){
+    df %>% 
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x))))
+  } else {
+    df %>%
+      group_by(Activity) %>%
+      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
+  }
+}
+
+dropSuperfluousAttributes <- function(df, dropCols = NULL) {
+  if(is.null(dropCols)) {
+    dropCols <- c("Case.ID", "Resource", "Timestamp", "Variant", "Lifecycle")
+  }
+  df %>% select(-contains(dropCols))
+}
+```
+
+
+```{r dataLoading}
 OfferApplications <- read.csv(here("data", "bpi17.csv"))
+OfferApplications <- dropSuperfluousAttributes(OfferApplications, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
 OfferApplications[OfferApplications == ""] <- NA 
+OfferApplications[OfferApplications == 0] <- NA
 Offers <- read.csv(here("data", "bpi17_offer_log.csv"))
 Offers[Offers == ""] <- NA
+Offers[Offers == 0] <- NA
 
 Permits <- read.csv(here("data", "PermitLog.csv"))
 Permits[Permits == ""] <- NA
@@ -29,33 +54,9 @@ eventlogmockP1[eventlogmockP1 == ""] <- NA
 eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
 eventlogmockP2[eventlogmockP2 == ""] <- NA
 
-bano.a2a <- function(df, relative = FALSE) {
-  if(relative == FALSE){
-    df %>% 
-      group_by(Activity) %>%
-      summarise(across(everything(), ~ sum(!is.na(.x))))
-  } else {
-    #accessCount <- df %>% 
-    #  group_by(Activity) %>%
-    #  summarise(total = n())
-  #  
-  #  df <- df %>% 
-  #    group_by(Activity) %>%
-  #    summarise(across(everything(), ~ sum(!is.na(.x))))
-  #  
-  #  df[2:ncol(df)] <- lapply(df[2:ncol(df)], as.numeric)
-  #  for(i in (1:nrow(df))){
-  #    currentActivity <- df$Activity[i]
-  #    for(j in (2:ncol(df))){
-  #      df[df$Activity == currentActivity, j] <- df[df$Activity == currentActivity, j] / accessCount[accessCount$Activity == currentActivity, 2] 
-  #    }
-  #  }
-  #  df
-    df %>%
-      group_by(Activity) %>%
-      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
-  }
-}
+RoadTraffic <- read.csv("D:/uni/bpm/data/Road_Traffic_Fine_Management_Process.csv")
+RoadTraffic[RoadTraffic == ""] <- NA
+RoadTraffic[RoadTraffic == 0] <- NA
 ```
 
 
@@ -86,20 +87,28 @@ prerequisiteSimilarity <- function(){
 OfferApplications.a2a <- bano.a2a(OfferApplications)
 OfferApplications.a2a.relative <- bano.a2a(OfferApplications, relative = TRUE)
 Offers.a2a <- bano.a2a(Offers)
+Offers.a2a.relative <- bano.a2a(Offers, relative = TRUE)
 
 Offer.union <- bind_rows(OfferApplications, Offers)
 Offer.union.a2a <- bano.a2a(Offer.union)
-Offers.a2a.relative <- bano.a2a(Offers, relative = TRUE)
-Offer.union.a2a.relative <- bano.a2a(Offer.union, relative = TRUE)
 
+Offer.union.a2a.relative <- bano.a2a(Offer.union, relative = TRUE)
+rownames(OfferApplications.a2a)
+  
+Offers <- dropSuperfluousAttributes(Offers)
 ```
 
 
 ```{r bpi2020}
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
-permits.a2a <- bano.a2a(permits.union)
+permits.union.a2a <- bano.a2a(permits.union)
 
-permits.a2a.rel <- bano.a2a(Permits, relative = TRUE)
+permits.union.a2a.rel <- bano.a2a(Permits, relative = TRUE)
+Permits.a2a <- bano.a2a(Permits, relative = TRUE)
+PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost, relative = TRUE)
+RequestForPayment.a2a <- bano.a2a(RequestForPayment, relative = TRUE)
+DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations, relative = TRUE)
+InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations, relative = TRUE)
 
 
 ```
@@ -170,12 +179,12 @@ cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Ac
 ```{r Graphing}
 library(igraph)
 library(textshape)
-inc <- EL.union.a2a
+inc <- OfferApplications.a2a
 inc <- column_to_rownames(inc, 1)
 g <- graph_from_incidence_matrix(inc, multiple = FALSE)
 
 l <- layout.bipartite(g, vgap = 0.1)
-plot(g, layout=l[ , c(2,1)],
+plot(g, layout=-l[,2:1],
      vertex.label.cex=0.75, 
      vertex.label.family="Helvetica",
      vertex.label.font=1,
@@ -186,6 +195,19 @@ plot(g, layout=l[ , c(2,1)],
      edge.width=1,
      asp = 0.5,
      margin = 0)
+
+plot(g,
+     vertex.label.cex=0.75, 
+     vertex.label.family="Helvetica",
+     vertex.label.font=1,
+     
+     vertex.shape="circle", 
+     vertex.size=1, 
+     vertex.label.color="black",
+     edge.width=1,
+     asp = 0.5,
+     margin = 0)
+
 ```
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
@@ -199,6 +221,22 @@ temp <- Offer.union %>%
       summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
 temp2 <- bano.a2a(Offer.union, relative = TRUE)
 ```
+
+
+
+```{r}
+library(dm)
+dm(DomesticDeclarations, InternationalDeclarations, PrepaidTravelCost, RequestForPayment, Permits)
+```
+
+```{r RoadTraffic}
+RoadTraffic.a2a <- bano.a2a(RoadTraffic)
+RoadTraffic.a2a.relative <- bano.a2a(RoadTraffic, relative = TRUE)
+summary(RoadTraffic$points)
+
+
+```
+
 
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
