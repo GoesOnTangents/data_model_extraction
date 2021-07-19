@@ -9,7 +9,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyverse)
 
-bano.a2a <- function(df, relative = FALSE) {
+a2a <- function(df, relative = FALSE) {
   if(relative == FALSE){
     df %>% 
       group_by(Activity) %>%
@@ -111,15 +111,15 @@ RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
 
 
 ```{r bpi2017}
-OfferApplications.a2a <- bano.a2a(OfferApplications)
-OfferApplications.a2a.relative <- bano.a2a(OfferApplications, relative = TRUE)
-Offers.a2a <- bano.a2a(Offers)
-Offers.a2a.relative <- bano.a2a(Offers, relative = TRUE)
+OfferApplications.a2a <- a2a(OfferApplications)
+OfferApplications.a2a.relative <- a2a(OfferApplications, relative = TRUE)
+Offers.a2a <- a2a(Offers)
+Offers.a2a.relative <- a2a(Offers, relative = TRUE)
 
 Offer.union <- bind_rows(OfferApplications, Offers)
-Offer.union.a2a <- bano.a2a(Offer.union)
+Offer.union.a2a <- a2a(Offer.union)
 
-Offer.union.a2a.relative <- bano.a2a(Offer.union, relative = TRUE)
+Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
 rownames(OfferApplications.a2a)
   
 Offers <- dropSuperfluousAttributes(Offers)
@@ -128,68 +128,88 @@ Offers <- dropSuperfluousAttributes(Offers)
 
 ```{r bpi2020}
 
-
-intersect(colnames(Permits), colnames(InternationalDeclarations))
-intersect(colnames(Permits), colnames(DomesticDeclarations))
-intersect(colnames(Permits), colnames(RequestForPayment))
-intersect(colnames(Permits), colnames(PrepaidTravelCost))
-
-intersect(colnames(InternationalDeclarations), colnames(DomesticDeclarations))
-intersect(colnames(InternationalDeclarations), colnames(RequestForPayment))
-intersect(colnames(InternationalDeclarations), colnames(PrepaidTravelCost))
-
-intersect(colnames(DomesticDeclarations), colnames(RequestForPayment))
-intersect(colnames(DomesticDeclarations), colnames(PrepaidTravelCost))
-
-intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost))
-
-
-Permits.a2a <- bano.a2a(Permits, relative = TRUE)
-DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations)
-InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations)
-PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost)
-RequestForPayment.a2a <- bano.a2a(RequestForPayment)
+Permits.a2a <- a2a(Permits, relative = TRUE)
+DomesticDeclarations.a2a <- a2a(DomesticDeclarations, relative = TRUE)
+InternationalDeclarations.a2a <- a2a(InternationalDeclarations, relative = TRUE)
+PrepaidTravelCost.a2a <- a2a(PrepaidTravelCost, relative = TRUE)
+RequestForPayment.a2a <- a2a(RequestForPayment, relative = TRUE)
 
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
-permits.union.a2a <- bano.a2a(permits.union)
+permits.union.a2a <- a2a(permits.union)
 
 permits.scaffold <- rule5.setup(permits.union.a2a)
 
-permits.union.a2a.rel <- bano.a2a(Permits)
-Permits.a2a <- bano.a2a(Permits)
-PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost)
-RequestForPayment.a2a <- bano.a2a(RequestForPayment)
-DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations)
-InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations)
+permits.union.a2a.rel <- a2a(Permits, relative = TRUE)
+Permits.a2a <- a2a(Permits)
+PrepaidTravelCost.a2a <- a2a(PrepaidTravelCost)
+RequestForPayment.a2a <- a2a(RequestForPayment)
+DomesticDeclarations.a2a <- a2a(DomesticDeclarations)
+InternationalDeclarations.a2a <- a2a(InternationalDeclarations)
 
 
 smolPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
-smolDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id, org.role)
-smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+smolDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id, Permit)
 smolRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
-smolPrepaidTravelCosts <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id, Permit.id)
+smolPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id, Permit.id)
 
 smolUnion <- bind_rows(smolPermits, smolDomesticDeclarations, smolInternationalDeclarations, smolRequestForPayment, smolPrepaidTravelCosts)
-smolUnion.a2a <- bano.a2a(smolUnion)
-smolPermits.a2a <- bano.a2a(smolPermits)
-smolPermits.a2a.rel <- bano.a2a(smolPermits, relative = TRUE)
-smolDomesticDeclarations.a2a <- bano.a2a(smolDomesticDeclarations)
-smolInternationalDeclarations.a2a <- bano.a2a(smolInternationalDeclarations)
-smolRequestForPayment.a2a <- bano.a2a(smolRequestForPayment)
-smolPrepaidTravelCosts.a2a <- bano.a2a(smolPrepaidTravelCosts)
+smolUnion.a2a <- a2a(smolUnion)
+smolPermits.a2a <- a2a(smolPermits)
+smolPermits.a2a.rel <- a2a(smolPermits, relative = TRUE)
+smolDomesticDeclarations.a2a <- a2a(smolDomesticDeclarations)
+smolInternationalDeclarations.a2a <- a2a(smolInternationalDeclarations)
+smolRequestForPayment.a2a <- a2a(smolRequestForPayment)
+smolPrepaidTravelCost.a2a <- a2a(smolPrepaidTravelCost)
+
+sort(intersect(colnames(smolPermits), colnames(smolInternationalDeclarations)))
+sort(intersect(colnames(smolPermits), colnames(smolDomesticDeclarations)))
+sort(intersect(colnames(smolPermits), colnames(smolRequestForPayment)))
+sort(intersect(colnames(smolPermits), colnames(smolPrepaidTravelCost)))
+
+sort(intersect(colnames(smolInternationalDeclarations), colnames(smolDomesticDeclarations)))
+sort(intersect(colnames(smolInternationalDeclarations), colnames(smolRequestForPayment)))
+sort(intersect(colnames(smolInternationalDeclarations), colnames(smolPrepaidTravelCost)))
+
+sort(intersect(colnames(smolDomesticDeclarations), colnames(smolRequestForPayment)))
+sort(intersect(colnames(smolDomesticDeclarations), colnames(smolPrepaidTravelCost)))
+
+sort(intersect(colnames(smolRequestForPayment), colnames(smolPrepaidTravelCost)))
+smolRfpPre.union <- bind_rows(smolRequestForPayment, smolPrepaidTravelCost)
+smolRfpPre.union.a2a <- a2a(smolRfpPre.union)
+
+smolIntDom.union <- bind_rows(smolInternationalDeclarations, smolDomesticDeclarations)
+smolIntDom.union.a2a <- a2a(smolIntDom.union)
+```
+
+```{r bpi2020 multilogAccess}
+
+sort(intersect(colnames(Permits), colnames(InternationalDeclarations)))
+sort(intersect(colnames(Permits), colnames(DomesticDeclarations)))
+sort(intersect(colnames(Permits), colnames(RequestForPayment)))
+sort(intersect(colnames(Permits), colnames(PrepaidTravelCost)))
+
+sort(intersect(colnames(InternationalDeclarations), colnames(DomesticDeclarations)))
+sort(intersect(colnames(InternationalDeclarations), colnames(RequestForPayment)))
+sort(intersect(colnames(InternationalDeclarations), colnames(PrepaidTravelCost)))
+
+sort(intersect(colnames(DomesticDeclarations), colnames(RequestForPayment)))
+sort(intersect(colnames(DomesticDeclarations), colnames(PrepaidTravelCost)))
+
+sort(intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost)))
+
+intersect(intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost)), colnames(DomesticDeclarations))
+
+
+DomInt.union <- bind_rows(DomesticDeclarations, InternationalDeclarations)
+DomInt.union.a2a <- a2a(DomInt.union)
+
+PrepaidRfp.union <- bind_rows(PrepaidTravelCost, RequestForPayment)
+PrepaidRfp.union.a2a <- a2a(PrepaidRfp.union)
 
 
 ```
 
-
-```{r mock}
-mock1.bano <- bano.a2a(eventlogmockP1)
-mock2.bano <- bano.a2a(eventlogmockP2)
-
-```
-
-```{r}
-```
 
 ```{r }
 names.1 <- colnames(EL.1)
@@ -285,12 +305,12 @@ When you save the notebook, an HTML file containing the code and output will be 
 temp <- Offer.union %>% 
       group_by(Activity) %>%
       summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
-temp2 <- bano.a2a(Offer.union, relative = TRUE)
+temp2 <- a2a(Offer.union, relative = TRUE)
 ```
 
 ```{r RoadTraffic}
-RoadTraffic.a2a <- bano.a2a(RoadTraffic)
-RoadTraffic.a2a.relative <- bano.a2a(RoadTraffic, relative = TRUE)
+RoadTraffic.a2a <- a2a(RoadTraffic)
+RoadTraffic.a2a.relative <- a2a(RoadTraffic, relative = TRUE)
 write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
 ```
 
