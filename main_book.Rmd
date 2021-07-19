@@ -91,6 +91,7 @@ RequestForPayment <- dropSuperfluousAttributes(RequestForPayment)
 PrepaidTravelCost.orig <- read.csv(here("data", "PrepaidTravelCost.csv"))
 PrepaidTravelCost <- replaceEmptyWithNA(PrepaidTravelCost.orig)
 PrepaidTravelCost <- dropSuperfluousAttributes(PrepaidTravelCost)
+
 ```
 
 
@@ -104,8 +105,8 @@ eventlogmockP2[eventlogmockP2 == ""] <- NA
 
 ```{r dataLoading Traffic}
 RoadTraffic <- read.csv("D:/uni/bpm/data/Road_Traffic_Fine_Management_Process.csv")
-RoadTraffic[RoadTraffic == ""] <- NA
-RoadTraffic[RoadTraffic == 0] <- NA
+RoadTraffic <- replaceEmptyWithNA(RoadTraffic)
+RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
 ```
 
 
@@ -126,6 +127,23 @@ Offers <- dropSuperfluousAttributes(Offers)
 
 
 ```{r bpi2020}
+
+
+intersect(colnames(Permits), colnames(InternationalDeclarations))
+intersect(colnames(Permits), colnames(DomesticDeclarations))
+intersect(colnames(Permits), colnames(RequestForPayment))
+intersect(colnames(Permits), colnames(PrepaidTravelCost))
+
+intersect(colnames(InternationalDeclarations), colnames(DomesticDeclarations))
+intersect(colnames(InternationalDeclarations), colnames(RequestForPayment))
+intersect(colnames(InternationalDeclarations), colnames(PrepaidTravelCost))
+
+intersect(colnames(DomesticDeclarations), colnames(RequestForPayment))
+intersect(colnames(DomesticDeclarations), colnames(PrepaidTravelCost))
+
+intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost))
+
+
 Permits.a2a <- bano.a2a(Permits, relative = TRUE)
 DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations)
 InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations)
@@ -133,20 +151,16 @@ PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost)
 RequestForPayment.a2a <- bano.a2a(RequestForPayment)
 
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
-permits.union.a2a <- bano.a2a(permits.union, relative = TRUE)
+permits.union.a2a <- bano.a2a(permits.union)
 
 permits.scaffold <- rule5.setup(permits.union.a2a)
 
-permits.union.a2a.rel <- bano.a2a(Permits, relative = TRUE)
+permits.union.a2a.rel <- bano.a2a(Permits)
 Permits.a2a <- bano.a2a(Permits)
-PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost, relative = TRUE)
-RequestForPayment.a2a <- bano.a2a(RequestForPayment, relative = TRUE)
-DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations, relative = TRUE)
-InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations, relative = TRUE)
-
-intersect(colnames(Permits.a2a), colnames(DomesticDeclarations.a2a))
-
-
+PrepaidTravelCost.a2a <- bano.a2a(PrepaidTravelCost)
+RequestForPayment.a2a <- bano.a2a(RequestForPayment)
+DomesticDeclarations.a2a <- bano.a2a(DomesticDeclarations)
+InternationalDeclarations.a2a <- bano.a2a(InternationalDeclarations)
 
 
 smolPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
@@ -274,19 +288,10 @@ temp <- Offer.union %>%
 temp2 <- bano.a2a(Offer.union, relative = TRUE)
 ```
 
-
-
-```{r}
-library(dm)
-dm(DomesticDeclarations, InternationalDeclarations, PrepaidTravelCost, RequestForPayment, Permits)
-```
-
 ```{r RoadTraffic}
 RoadTraffic.a2a <- bano.a2a(RoadTraffic)
 RoadTraffic.a2a.relative <- bano.a2a(RoadTraffic, relative = TRUE)
-summary(RoadTraffic$points)
-
-
+write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
 ```
 
 ```{r Similarity}

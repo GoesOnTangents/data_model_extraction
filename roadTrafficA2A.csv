@@ -1,0 +1,12 @@
+"","Activity","amount","dismissal","vehicleClass","totalPaymentAmount","article","points","expense","notificationType","lastSent","paymentAmount","matricola"
+"1","Add penalty",79842,0,0,0,0,0,0,0,0,0,0
+"2","Appeal to Judge",0,555,0,0,0,0,0,0,0,0,0
+"3","Create Fine",150334,150370,150370,0,150370,3548,0,0,0,0,0
+"4","Insert Date Appeal to Prefecture",0,0,0,0,0,0,0,0,0,0,0
+"5","Insert Fine Notification",0,0,0,0,0,0,0,79860,78229,0,0
+"6","Notify Result Appeal to Offender",0,0,0,0,0,0,0,0,0,0,0
+"7","Payment",0,0,0,77599,0,0,0,0,0,77598,0
+"8","Receive Result Appeal from Prefecture",0,0,0,0,0,0,0,0,0,0,0
+"9","Send Appeal to Prefecture",0,4141,0,0,0,0,0,0,0,0,0
+"10","Send Fine",0,0,0,0,0,0,101127,0,0,0,0
+"11","Send for Credit Collection",0,0,0,0,0,0,0,0,0,0,0
