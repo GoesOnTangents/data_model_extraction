@@ -53,17 +53,11 @@ rule5.fill <- function(scaffold, a2a) {
 }
 ```
 
-```{r}
-t <- rule5.fill(permits.scaffold, RequestForPayment.a2a)
-s <- rule5.fill(permits.scaffold, Permits.a2a)
-z <- t[,-1] +s[,-1]
-#TODO HEEEEEEEEEEERE
-```
 
 ```{r dataLoading Offers}
 # This dataset makes a distinction between NA and 0, so 0 stays.
 OfferApplications.orig <- read.csv(here("data", "bpi17.csv"))
-OfferApplicatrmions <- dropSuperfluousAttributes(OfferApplications.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
+OfferApplications <- dropSuperfluousAttributes(OfferApplications.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
 OfferApplications <- replaceEmptyWithNA(OfferApplications, keepZeroes = TRUE)
 Offers.orig <- read.csv(here("data", "bpi17_offer_log.csv"))
 Offers <- dropSuperfluousAttributes(Offers.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
@@ -120,9 +114,6 @@ Offer.union <- bind_rows(OfferApplications, Offers)
 Offer.union.a2a <- a2a(Offer.union)
 
 Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
-rownames(OfferApplications.a2a)
-  
-Offers <- dropSuperfluousAttributes(Offers)
 ```
 
 
@@ -149,11 +140,11 @@ InternationalDeclarations.a2a <- a2a(InternationalDeclarations)
 
 smolPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
 smolDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
-smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id, Permit)
+smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
 smolRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
-smolPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id, Permit.id)
+smolPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id)
 
-smolUnion <- bind_rows(smolPermits, smolDomesticDeclarations, smolInternationalDeclarations, smolRequestForPayment, smolPrepaidTravelCosts)
+smolUnion <- bind_rows(smolPermits, smolDomesticDeclarations, smolInternationalDeclarations, smolRequestForPayment, smolPrepaidTravelCost)
 smolUnion.a2a <- a2a(smolUnion)
 smolPermits.a2a <- a2a(smolPermits)
 smolPermits.a2a.rel <- a2a(smolPermits, relative = TRUE)
@@ -262,10 +253,10 @@ cat(c("Rule 3: ", "FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, 
 cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Action, LoanGoal, ApplicationType, RequestedAmount", "\n"))
 ```
 
-```{r Graphing}
+```{r Graphing bipartite}
 library(igraph)
 library(textshape)
-inc <- OfferApplications.a2a
+inc <- smolUnion.a2a
 inc <- column_to_rownames(inc, 1)
 g <- graph_from_incidence_matrix(inc, multiple = FALSE)
 
@@ -281,7 +272,10 @@ plot(g, layout=-l[,2:1],
      edge.width=1,
      asp = 0.5,
      margin = 0)
+```
 
+
+```{r Graphing naive}
 plot(g,
      vertex.label.cex=0.75, 
      vertex.label.family="Helvetica",
@@ -301,39 +295,10 @@ When you save the notebook, an HTML file containing the code and output will be 
 
 
 
-```{r}
-temp <- Offer.union %>% 
-      group_by(Activity) %>%
-      summarise(across(everything(), ~ sum(!is.na(.x)) / n()))
-temp2 <- a2a(Offer.union, relative = TRUE)
-```
-
-```{r RoadTraffic}
+```{r RoadTraffictemp}
 RoadTraffic.a2a <- a2a(RoadTraffic)
 RoadTraffic.a2a.relative <- a2a(RoadTraffic, relative = TRUE)
 write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
-```
-
-```{r Similarity}
-positionalSimilarity <- function(){
-
-}
-
-occurenceSimilarity <- function(){
-  
-}
-durationSimilarity <- function(){
-  
-}
-attributeNameSimilarity <- function(){
-  
-}
-attributeValueSimilarity <- function(){
-  
-}
-prerequisiteSimilarity <- function(){
-  
-}
 ```
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
