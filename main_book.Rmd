@@ -13,6 +13,7 @@ library(dplyr)
 library(tidyverse)
 library(igraph)
 library(textshape)
+library(RVenn)
 ```
 
 
@@ -178,11 +179,27 @@ cat(c("Class candidates:", "\n",
   MLAD(RequestForPayment, PrepaidTravelCost), "\n"
   )
 )
-DomInt.union <- bind_rows(DomesticDeclarations, InternationalDeclarations)
-DomInt.union.a2a <- a2a(DomInt.union)
 
-PrepaidRfp.union <- bind_rows(PrepaidTravelCost, RequestForPayment)
-PrepaidRfp.union.a2a <- a2a(PrepaidRfp.union)
+removeAttributes <- list(MLAD(Permits, InternationalDeclarations),
+                    MLAD(Permits, DomesticDeclarations),
+                    MLAD(Permits, RequestForPayment),
+                    MLAD(Permits, PrepaidTravelCost),
+                    MLAD(InternationalDeclarations, DomesticDeclarations),
+                    MLAD(InternationalDeclarations, RequestForPayment),
+                    MLAD(InternationalDeclarations, PrepaidTravelCost),
+                    MLAD(DomesticDeclarations, RequestForPayment),
+                    MLAD(DomesticDeclarations, PrepaidTravelCost),
+                    MLAD(RequestForPayment, PrepaidTravelCost))
+ra <- Venn(removeAttributes)
+ra <- unite(ra)
+removeAttributes <- strsplit(ra, " ")
+permits.union.a2a <- permits.union.a2a[ , !(colnames(permits.union.a2a) %in% removeAttributes)]
+## Still 167 attributes left after MLAD. 
+## Remove Multi-Column Attributes.
+
+permits.union.a2a <- permits.union.a2a[ , 1:14]
+cat(c("Attributes found by FCSE:", "\n",
+      sort(colnames(permits.union.a2a))))
 ```
 
 ### Multi-log Access Detection in the Reduced BPI 2020 Dataset. 
@@ -225,11 +242,7 @@ cat(c("Class candidates:", "\n",
 Two sets of attributes are found that are not fully subsets of another set:
 
 ```{r reduced bpi2020 results}
-cat(c("First found class:"), "\n",
-    MLAD(reducedInternationalDeclarations, reducedDomesticDeclarations), "\n", "\n")
 
-cat(c("Second class:", "\n",
-      MLAD(reducedRequestForPayment, reducedPrepaidTravelCost), "\n", "\n"))
 
 
 reducedRfp.union <- bind_rows(reducedRequestForPayment, reducedPrepaidTravelCost)
@@ -241,8 +254,12 @@ reducedIntDom.union <- reducedIntDom.union[ , !(colnames(reducedIntDom.union) %i
 # All attributes of the pairs were shared, so after removing the attributes the datasets are empty;
 # Only reducedPermits remains.
 
-cat(c("Remaining class by FCSE:", "\n",
-      colnames(reducedPermits.a2a), "\n"))
+cat(c("First found class:", "\n",
+    MLAD(reducedInternationalDeclarations, reducedDomesticDeclarations), "\n", "\n",
+    "Second class:", "\n",
+    MLAD(reducedRequestForPayment, reducedPrepaidTravelCost), "\n", "\n",
+    "Remaining class by FCSE:", "\n",
+    colnames(reducedPermits.a2a), "\n"))
 
 
 ```

@@ -1,6 +1,7 @@
-# Global Data Model Extraction
+# Discovering a Global Data Model from Event Logs
 
 This is the complementary repository for Kim-Pascal Borchart's contributions to "Challenges in BPM Research", 2021.
+It shows a process of extracting a previously unknown data model from a set of related event logs.
 
 ## Usage
 
