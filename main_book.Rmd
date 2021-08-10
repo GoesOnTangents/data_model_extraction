@@ -65,6 +65,9 @@ MLAD <- function(a, b) {
 }
 ```
 
+This is the complementary notebook for the report "Discovering Global Data Models from Event Logs".
+
+
 ## Loading of Datasets
 
 For reproducibility, this section shows the datasets' preprocessing.
@@ -118,14 +121,7 @@ PrepaidTravelCost <- dropSuperfluousAttributes(PrepaidTravelCost)
 #eventlogmockP2[eventlogmockP2 == ""] <- NA
 ```
 
-
-```{r dataLoading Traffic, include = FALSE}
-RoadTraffic <- read.csv(here("data", "Road_Traffic_Fine_Management_Process.csv"))
-RoadTraffic <- replaceEmptyWithNA(RoadTraffic)
-RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
-```
-
-## Dataset Transformations as Discussed in Main Paper
+## Algorithmic steps to generate a global data model
 
 ### Offer Applications (BPI 2017)
 
@@ -135,77 +131,53 @@ Event Logs are translated to A2A Matrices. MLAD Matrices are combined by union.
 OfferApplications.a2a <- a2a(OfferApplications)
 OfferApplications.a2a.relative <- a2a(OfferApplications, relative = TRUE)
 Offers.a2a <- a2a(Offers)
-#Offers.a2a.relative <- a2a(Offers, relative = TRUE)
 
-print("Class attributes found by MLAD:")
-MLAD(Offers, OfferApplications)
+
+cat(c("Class attributes found by MLAD:", "\n", MLAD(Offers, OfferApplications), "\n", "\n"))
 
 Offer.union <- bind_rows(OfferApplications, Offers)
 Offer.union.a2a <- a2a(Offer.union)
 
 Offer.union.a2a.remaining <- Offer.union.a2a[ , !(colnames(Offer.union.a2a) %in% MLAD(Offers, OfferApplications))]
-print("Remaining attributes found by FCSE:")
-colnames(Offer.union.a2a.remaining)
-#Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
+cat(c("Remaining attributes found by FCSE:", "\n", colnames(Offer.union.a2a.remaining), "\n"))
+
 ```
 ### Permits (BPI 2020)
 
 Event logs are translated to A2A Matrices.
 
 ```{r bpi2020}
-Permits.a2a <- a2a(Permits, relative = TRUE)
-DomesticDeclarations.a2a <- a2a(DomesticDeclarations, relative = TRUE)
-InternationalDeclarations.a2a <- a2a(InternationalDeclarations, relative = TRUE)
-PrepaidTravelCost.a2a <- a2a(PrepaidTravelCost, relative = TRUE)
-RequestForPayment.a2a <- a2a(RequestForPayment, relative = TRUE)
+Permits.a2a <- a2a(Permits)
+DomesticDeclarations.a2a <- a2a(DomesticDeclarations)
+InternationalDeclarations.a2a <- a2a(InternationalDeclarations)
+PrepaidTravelCost.a2a <- a2a(PrepaidTravelCost)
+RequestForPayment.a2a <- a2a(RequestForPayment)
 
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
 permits.union.a2a <- a2a(permits.union)
-
-permits.union.a2a.rel <- a2a(Permits, relative = TRUE)
-Permits.a2a <- a2a(Permits)
-PrepaidTravelCost.a2a <- a2a(PrepaidTravelCost)
-RequestForPayment.a2a <- a2a(RequestForPayment)
-DomesticDeclarations.a2a <- a2a(DomesticDeclarations)
-InternationalDeclarations.a2a <- a2a(InternationalDeclarations)
-
-
-reducedPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
-reducedDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
-reducedInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
-reducedRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
-reducedPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id)
-
-reducedUnion <- bind_rows(reducedPermits, reducedDomesticDeclarations, reducedInternationalDeclarations, reducedRequestForPayment, reducedPrepaidTravelCost)
-reducedUnion.a2a <- a2a(reducedUnion)
-reducedPermits.a2a <- a2a(reducedPermits)
-reducedPermits.a2a.rel <- a2a(reducedPermits, relative = TRUE)
-reducedDomesticDeclarations.a2a <- a2a(reducedDomesticDeclarations)
-reducedInternationalDeclarations.a2a <- a2a(reducedInternationalDeclarations)
-reducedRequestForPayment.a2a <- a2a(reducedRequestForPayment)
-reducedPrepaidTravelCost.a2a <- a2a(reducedPrepaidTravelCost)
 ```
 
 
-### Multi-log Access Detection for the bpi 2020
+### Multi-log Access Detection for the BPI 2020 Challenge
+
+MLAD is performed pair-wise on all logs. 
 ```{r bpi2020 mlad}
-sort(intersect(colnames(Permits), colnames(InternationalDeclarations)))
-sort(intersect(colnames(Permits), colnames(DomesticDeclarations)))
-sort(intersect(colnames(Permits), colnames(RequestForPayment)))
-sort(intersect(colnames(Permits), colnames(PrepaidTravelCost)))
-
-sort(intersect(colnames(InternationalDeclarations), colnames(DomesticDeclarations)))
-sort(intersect(colnames(InternationalDeclarations), colnames(RequestForPayment)))
-sort(intersect(colnames(InternationalDeclarations), colnames(PrepaidTravelCost)))
-
-sort(intersect(colnames(DomesticDeclarations), colnames(RequestForPayment)))
-sort(intersect(colnames(DomesticDeclarations), colnames(PrepaidTravelCost)))
-
-sort(intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost)))
-
-intersect(intersect(colnames(RequestForPayment), colnames(PrepaidTravelCost)), colnames(DomesticDeclarations))
-
-
+cat(c("Class candidates:", "\n",
+  MLAD(Permits, InternationalDeclarations), "\n", 
+  MLAD(Permits, DomesticDeclarations), "\n",
+  MLAD(Permits, RequestForPayment), "\n",
+  MLAD(Permits, PrepaidTravelCost), "\n",
+  
+  MLAD(InternationalDeclarations, DomesticDeclarations), "\n",
+  MLAD(InternationalDeclarations, RequestForPayment), "\n",
+  MLAD(InternationalDeclarations, PrepaidTravelCost), "\n",
+  
+  MLAD(DomesticDeclarations, RequestForPayment), "\n",
+  MLAD(DomesticDeclarations, PrepaidTravelCost), "\n",
+  
+  MLAD(RequestForPayment, PrepaidTravelCost), "\n"
+  )
+)
 DomInt.union <- bind_rows(DomesticDeclarations, InternationalDeclarations)
 DomInt.union.a2a <- a2a(DomInt.union)
 
@@ -213,30 +185,69 @@ PrepaidRfp.union <- bind_rows(PrepaidTravelCost, RequestForPayment)
 PrepaidRfp.union.a2a <- a2a(PrepaidRfp.union)
 ```
 
-### Multi-log Access Detection in the Reduced BPI 2020 dataset. 
-Reductions based on "Multi-perspective Analysis of Approval Processes based on Multiple Event Logs", by Bano et. al.
+### Multi-log Access Detection in the Reduced BPI 2020 Dataset. 
+
+Since results on the full Permits dataset are convoluted, the attributes are reduced.
+Reductions are based on "Multi-perspective Analysis of Approval Processes based on Multiple Event Logs", by Bano et. al:
+Many rarely accessed attributes are removed, as well as multi-column attributes of the type "attributeName_0", ... "attributesName_n".
+
 ```{r reduced bpi2020 mlad}
-sort(intersect(colnames(reducedPermits), colnames(reducedInternationalDeclarations)))
-sort(intersect(colnames(reducedPermits), colnames(reducedDomesticDeclarations)))
-sort(intersect(colnames(reducedPermits), colnames(reducedRequestForPayment)))
-sort(intersect(colnames(reducedPermits), colnames(reducedPrepaidTravelCost)))
+reducedPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
+reducedDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+reducedInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+reducedRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
+reducedPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id)
 
-sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedDomesticDeclarations)))
-sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedRequestForPayment)))
-sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedPrepaidTravelCost)))
 
-sort(intersect(colnames(reducedDomesticDeclarations), colnames(reducedRequestForPayment)))
-sort(intersect(colnames(reducedDomesticDeclarations), colnames(reducedPrepaidTravelCost)))
+reducedPermits.a2a <- a2a(reducedPermits)
+reducedDomesticDeclarations.a2a <- a2a(reducedDomesticDeclarations)
+reducedInternationalDeclarations.a2a <- a2a(reducedInternationalDeclarations)
+reducedRequestForPayment.a2a <- a2a(reducedRequestForPayment)
+reducedPrepaidTravelCost.a2a <- a2a(reducedPrepaidTravelCost)
 
-sort(intersect(colnames(reducedRequestForPayment), colnames(reducedPrepaidTravelCost)))
-reducedRfpPre.union <- bind_rows(reducedRequestForPayment, reducedPrepaidTravelCost)
-reducedRfpPre.union.a2a <- a2a(reducedRfpPre.union)
-
-reducedIntDom.union <- bind_rows(reducedInternationalDeclarations, reducedDomesticDeclarations)
-reducedIntDom.union.a2a <- a2a(reducedIntDom.union)
+cat(c("Class candidates:", "\n",
+  MLAD(reducedPermits, reducedInternationalDeclarations), "\n",
+  MLAD(reducedPermits, reducedDomesticDeclarations), "\n",
+  MLAD(reducedPermits, reducedRequestForPayment), "\n",
+  MLAD(reducedPermits, reducedPrepaidTravelCost), "\n",
+  
+  MLAD(reducedInternationalDeclarations, reducedDomesticDeclarations), "\n",
+  MLAD(reducedInternationalDeclarations, reducedRequestForPayment), "\n",
+  MLAD(reducedInternationalDeclarations, reducedPrepaidTravelCost), "\n",
+  
+  MLAD(reducedDomesticDeclarations, reducedRequestForPayment), "\n",
+  MLAD(reducedDomesticDeclarations, reducedPrepaidTravelCost), "\n",
+  
+  MLAD(reducedRequestForPayment, reducedPrepaidTravelCost), "\n"
+))
 ```
 
-```{r, echo= FALSE, eval=FALSE }
+Two sets of attributes are found that are not fully subsets of another set:
+
+```{r reduced bpi2020 results}
+cat(c("First found class:"), "\n",
+    MLAD(reducedInternationalDeclarations, reducedDomesticDeclarations), "\n", "\n")
+
+cat(c("Second class:", "\n",
+      MLAD(reducedRequestForPayment, reducedPrepaidTravelCost), "\n", "\n"))
+
+
+reducedRfp.union <- bind_rows(reducedRequestForPayment, reducedPrepaidTravelCost)
+reducedRfp.union <- reducedRfp.union[ , !(colnames(reducedRfp.union) %in% MLAD(reducedRequestForPayment, reducedPrepaidTravelCost))]
+
+reducedIntDom.union <- bind_rows(reducedInternationalDeclarations, reducedDomesticDeclarations)
+reducedIntDom.union <- reducedIntDom.union[ , !(colnames(reducedIntDom.union) %in% MLAD(reducedInternationalDeclarations, reducedDomesticDeclarations))] 
+
+# All attributes of the pairs were shared, so after removing the attributes the datasets are empty;
+# Only reducedPermits remains.
+
+cat(c("Remaining class by FCSE:", "\n",
+      colnames(reducedPermits.a2a), "\n"))
+
+
+```
+
+```{r, include = FALSE, eval = FALSE}
 names.1 <- colnames(EL.1)
 names.2 <- colnames(EL.2)
 
@@ -245,7 +256,7 @@ cat("Columns only in log.1:", names.1[!names.1 %in% names.2], "\n",
     "Columns only in log.2:", names.2[!names.2 %in% names.1])
 ```
 
-```{r Approach 0, echo= FALSE, eval=FALSE}
+```{r Approach 0, include=FALSE, eval = FALSE}
 #Rule 1 not applicable
 
 #Rule 3
@@ -288,15 +299,39 @@ cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Ac
 ```
 
 
-### Automated A2A Diagram Generation
+### Community Structure Properties for Automated A2A Diagram Generation
 
-Not part of the research questions, but interesting to see how the graphing algorithm clusters attributes.
+Community Structure in graphs leads to clustering of connected vertices. We can take activities and attributes of an A2A Matrix as graph input.
+This leads to clusters of related vertices (i.e., related attributes and activities), but identifying which of the vertices are attributes or activities might be non-trivial later. 
+
+In the case of the offer application A2A Union Matrix, two clusters can be seen since the offer application event logs are representing two classes.
+This version of graphing doesn't plot the graph as bipartite graph (i.e., the structure of an A2A diagram is unenforced).
+
+```{r Graphing naive}
+a2aMatrix <- a2a(Offer.union) # put any a2a matrix here to generate a2a diagram (Activity needs to be first column)
+a2aMatrix <- column_to_rownames(a2aMatrix, 1) # make activities vertices
+g <- graph_from_incidence_matrix(a2aMatrix, multiple = FALSE)
+
+plot(g,
+     vertex.label.cex=0.75, 
+     vertex.label.family="Helvetica",
+     vertex.label.font=1,
+     
+     vertex.shape="circle", 
+     vertex.size=1, 
+     vertex.label.color="black",
+     edge.width=1,
+     asp = 0.5,
+     margin = 0)
+
+```
+
+By forcing the bipartite layout of A2A Diagrams, we can clearly identify related attributes.
+In this case, the community structure of the A2A Diagram "finds" the same classes as MLAD + FCSE.
+
+
 
 ```{r Graphing bipartite}
-
-inc <- reducedUnion.a2a #put any a2a matrix here to generate a2a diagram
-inc <- column_to_rownames(inc, 1)
-g <- graph_from_incidence_matrix(inc, multiple = FALSE)
 
 l <- layout.bipartite(g, vgap = 0.1)
 plot(g, layout=-l[,2:1],
@@ -312,10 +347,21 @@ plot(g, layout=-l[,2:1],
      margin = 0)
 ```
 
-This version doesn't plot the graph as bipartite graph (i.e., the structure of an A2A diagram is unenforced).
 
-```{r Graphing naive}
-plot(g,
+For the BPI 2020 logs this is less obvious, but still visible. The reduced BPI 2020 event logs have "correct" clustering.
+
+Taking the Road Traffic Fine Management (RTFM) dataset from the original paper on discovering data models on single event logs, the community structure also "identifies" the same classes as the base algorithm.
+
+```{r graphing RTFM}
+RoadTraffic <- read.csv(here("data", "Road_Traffic_Fine_Management_Process.csv"))
+RoadTraffic <- replaceEmptyWithNA(RoadTraffic)
+RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
+
+rt <- a2a(RoadTraffic) #put any a2a matrix here to generate a2a diagram (Activity needs to be first column)
+rt <- column_to_rownames(rt, 1) #Remove Activity
+g <- graph_from_incidence_matrix(rt, multiple = FALSE)
+l <- layout.bipartite(g, vgap = 0.1)
+plot(g, layout=-l[,2:1],
      vertex.label.cex=0.75, 
      vertex.label.family="Helvetica",
      vertex.label.font=1,
@@ -327,11 +373,4 @@ plot(g,
      asp = 0.5,
      margin = 0)
 
-```
-
-
-```{r RoadTraffictemp, include = FALSE}
-RoadTraffic.a2a <- a2a(RoadTraffic)
-RoadTraffic.a2a.relative <- a2a(RoadTraffic, relative = TRUE)
-#write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
 ```
