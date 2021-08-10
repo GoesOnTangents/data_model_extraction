@@ -1,14 +1,22 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
-```{r setup}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(here)
 library(ggplot2)
 library(dplyr)
 library(tidyverse)
+library(igraph)
+library(textshape)
+```
 
+
+```{r functions, echo=FALSE}
 a2a <- function(df, relative = FALSE) {
   if(relative == FALSE){
     df %>% 
@@ -34,14 +42,14 @@ replaceEmptyWithNA <- function(df, keepZeroes = FALSE) {
   df
 }
 
-rule5.setup <- function(a2a) {
+mlad.setup <- function(a2a) {
   df <- slice(a2a, 0)
   df <- bind_rows(df, a2a %>% select(Activity))
   df[is.na(df)] <- 0
   df
 }
 
-rule5.fill <- function(scaffold, a2a) {
+mlad.fill <- function(scaffold, a2a) {
   columns <- colnames(a2a)
   rows <- rownames(a2a)
   for(c in columns) {
@@ -56,49 +64,49 @@ rule5.fill <- function(scaffold, a2a) {
 
 ```{r dataLoading Offers}
 # This dataset makes a distinction between NA and 0, so 0 stays.
-OfferApplications.orig <- read.csv(here("data", "bpi17.csv"))
-OfferApplications <- dropSuperfluousAttributes(OfferApplications.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
+OfferApplications <- read.csv(here("data", "bpi17.csv"))
+OfferApplications <- dropSuperfluousAttributes(OfferApplications, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
 OfferApplications <- replaceEmptyWithNA(OfferApplications, keepZeroes = TRUE)
-Offers.orig <- read.csv(here("data", "bpi17_offer_log.csv"))
-Offers <- dropSuperfluousAttributes(Offers.orig, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
+Offers <- read.csv(here("data", "bpi17_offer_log.csv"))
+Offers <- dropSuperfluousAttributes(Offers, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
 Offers <- replaceEmptyWithNA(Offers, keepZeroes = TRUE)
 ```
 
 
 ```{r dataLoading Permits}
-Permits.orig <- read.csv(here("data", "PermitLog.csv"))
-Permits <- replaceEmptyWithNA(Permits.orig)
+Permits <- read.csv(here("data", "PermitLog.csv"))
+Permits <- replaceEmptyWithNA(Permits)
 Permits <- dropSuperfluousAttributes(Permits)
 
-InternationalDeclarations.orig <- read.csv(here("data", "InternationalDeclarations.csv"))
-InternationalDeclarations <- replaceEmptyWithNA(InternationalDeclarations.orig)
+InternationalDeclarations <- read.csv(here("data", "InternationalDeclarations.csv"))
+InternationalDeclarations <- replaceEmptyWithNA(InternationalDeclarations)
 InternationalDeclarations <- dropSuperfluousAttributes(InternationalDeclarations)
 
-DomesticDeclarations.orig <- read.csv(here("data", "DomesticDeclarations.csv"))
-DomesticDeclarations <- replaceEmptyWithNA(DomesticDeclarations.orig)
+DomesticDeclarations <- read.csv(here("data", "DomesticDeclarations.csv"))
+DomesticDeclarations <- replaceEmptyWithNA(DomesticDeclarations)
 DomesticDeclarations <- dropSuperfluousAttributes(DomesticDeclarations)
 
-RequestForPayment.orig <- read.csv(here("data", "RequestForPayment.csv"))
-RequestForPayment <- replaceEmptyWithNA(RequestForPayment.orig)
+RequestForPayment <- read.csv(here("data", "RequestForPayment.csv"))
+RequestForPayment <- replaceEmptyWithNA(RequestForPayment)
 RequestForPayment <- dropSuperfluousAttributes(RequestForPayment)
 
-PrepaidTravelCost.orig <- read.csv(here("data", "PrepaidTravelCost.csv"))
-PrepaidTravelCost <- replaceEmptyWithNA(PrepaidTravelCost.orig)
+PrepaidTravelCost <- read.csv(here("data", "PrepaidTravelCost.csv"))
+PrepaidTravelCost <- replaceEmptyWithNA(PrepaidTravelCost)
 PrepaidTravelCost <- dropSuperfluousAttributes(PrepaidTravelCost)
 
 ```
 
 
-```{r dataLoading Mock}
-eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
-eventlogmockP1[eventlogmockP1 == ""] <- NA
-eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
-eventlogmockP2[eventlogmockP2 == ""] <- NA
+```{r dataLoading Mock, echo = FALSE}
+#eventlogmockP1 <- read.csv("D:/uni/bpm/eventlogmockP1.csv")
+#eventlogmockP1[eventlogmockP1 == ""] <- NA
+#eventlogmockP2 <- read.csv("D:/uni/bpm/eventlogmockP2.csv")
+#eventlogmockP2[eventlogmockP2 == ""] <- NA
 ```
 
 
 ```{r dataLoading Traffic}
-RoadTraffic <- read.csv("D:/uni/bpm/data/Road_Traffic_Fine_Management_Process.csv")
+RoadTraffic <- read.csv(here("data", "Road_Traffic_Fine_Management_Process.csv"))
 RoadTraffic <- replaceEmptyWithNA(RoadTraffic)
 RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
 ```
@@ -118,7 +126,6 @@ Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
 
 
 ```{r bpi2020}
-
 Permits.a2a <- a2a(Permits, relative = TRUE)
 DomesticDeclarations.a2a <- a2a(DomesticDeclarations, relative = TRUE)
 InternationalDeclarations.a2a <- a2a(InternationalDeclarations, relative = TRUE)
@@ -128,7 +135,7 @@ RequestForPayment.a2a <- a2a(RequestForPayment, relative = TRUE)
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
 permits.union.a2a <- a2a(permits.union)
 
-permits.scaffold <- rule5.setup(permits.union.a2a)
+#permits.scaffold <- mla.setup(permits.union.a2a)
 
 permits.union.a2a.rel <- a2a(Permits, relative = TRUE)
 Permits.a2a <- a2a(Permits)
@@ -138,43 +145,25 @@ DomesticDeclarations.a2a <- a2a(DomesticDeclarations)
 InternationalDeclarations.a2a <- a2a(InternationalDeclarations)
 
 
-smolPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
-smolDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
-smolInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
-smolRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
-smolPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id)
+reducedPermits <- Permits %>% select(Activity, BudgetNumber, Overspent, OverspentAmount, ProjectNumber, RequestedBudget, TotalDeclared, id)
+reducedDomesticDeclarations <- DomesticDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+reducedInternationalDeclarations <- InternationalDeclarations %>% select(Activity, Amount, BudgetNumber, id)
+reducedRequestForPayment <- RequestForPayment %>% select(Activity, Project, RequestedAmount, Rfp_id)
+reducedPrepaidTravelCost <- PrepaidTravelCost %>% select(Activity, Project, RequestedAmount, Rfp_id)
 
-smolUnion <- bind_rows(smolPermits, smolDomesticDeclarations, smolInternationalDeclarations, smolRequestForPayment, smolPrepaidTravelCost)
-smolUnion.a2a <- a2a(smolUnion)
-smolPermits.a2a <- a2a(smolPermits)
-smolPermits.a2a.rel <- a2a(smolPermits, relative = TRUE)
-smolDomesticDeclarations.a2a <- a2a(smolDomesticDeclarations)
-smolInternationalDeclarations.a2a <- a2a(smolInternationalDeclarations)
-smolRequestForPayment.a2a <- a2a(smolRequestForPayment)
-smolPrepaidTravelCost.a2a <- a2a(smolPrepaidTravelCost)
-
-sort(intersect(colnames(smolPermits), colnames(smolInternationalDeclarations)))
-sort(intersect(colnames(smolPermits), colnames(smolDomesticDeclarations)))
-sort(intersect(colnames(smolPermits), colnames(smolRequestForPayment)))
-sort(intersect(colnames(smolPermits), colnames(smolPrepaidTravelCost)))
-
-sort(intersect(colnames(smolInternationalDeclarations), colnames(smolDomesticDeclarations)))
-sort(intersect(colnames(smolInternationalDeclarations), colnames(smolRequestForPayment)))
-sort(intersect(colnames(smolInternationalDeclarations), colnames(smolPrepaidTravelCost)))
-
-sort(intersect(colnames(smolDomesticDeclarations), colnames(smolRequestForPayment)))
-sort(intersect(colnames(smolDomesticDeclarations), colnames(smolPrepaidTravelCost)))
-
-sort(intersect(colnames(smolRequestForPayment), colnames(smolPrepaidTravelCost)))
-smolRfpPre.union <- bind_rows(smolRequestForPayment, smolPrepaidTravelCost)
-smolRfpPre.union.a2a <- a2a(smolRfpPre.union)
-
-smolIntDom.union <- bind_rows(smolInternationalDeclarations, smolDomesticDeclarations)
-smolIntDom.union.a2a <- a2a(smolIntDom.union)
+reducedUnion <- bind_rows(reducedPermits, reducedDomesticDeclarations, reducedInternationalDeclarations, reducedRequestForPayment, reducedPrepaidTravelCost)
+reducedUnion.a2a <- a2a(reducedUnion)
+reducedPermits.a2a <- a2a(reducedPermits)
+reducedPermits.a2a.rel <- a2a(reducedPermits, relative = TRUE)
+reducedDomesticDeclarations.a2a <- a2a(reducedDomesticDeclarations)
+reducedInternationalDeclarations.a2a <- a2a(reducedInternationalDeclarations)
+reducedRequestForPayment.a2a <- a2a(reducedRequestForPayment)
+reducedPrepaidTravelCost.a2a <- a2a(reducedPrepaidTravelCost)
 ```
 
-```{r bpi2020 multilogAccess}
 
+## Multi-log Access Detection for the bpi 2020
+```{r bpi2020 mlad}
 sort(intersect(colnames(Permits), colnames(InternationalDeclarations)))
 sort(intersect(colnames(Permits), colnames(DomesticDeclarations)))
 sort(intersect(colnames(Permits), colnames(RequestForPayment)))
@@ -197,12 +186,32 @@ DomInt.union.a2a <- a2a(DomInt.union)
 
 PrepaidRfp.union <- bind_rows(PrepaidTravelCost, RequestForPayment)
 PrepaidRfp.union.a2a <- a2a(PrepaidRfp.union)
-
-
 ```
 
+## Multi-log Access Detection in the Reduced BPI 2020 dataset. 
+Reductions based on "Multi-perspective Analysis of Approval Processes based on Multiple Event Logs", by Bano et. al.
+```{r reduced bpi2020 mlad}
+sort(intersect(colnames(reducedPermits), colnames(reducedInternationalDeclarations)))
+sort(intersect(colnames(reducedPermits), colnames(reducedDomesticDeclarations)))
+sort(intersect(colnames(reducedPermits), colnames(reducedRequestForPayment)))
+sort(intersect(colnames(reducedPermits), colnames(reducedPrepaidTravelCost)))
 
-```{r }
+sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedDomesticDeclarations)))
+sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedRequestForPayment)))
+sort(intersect(colnames(reducedInternationalDeclarations), colnames(reducedPrepaidTravelCost)))
+
+sort(intersect(colnames(reducedDomesticDeclarations), colnames(reducedRequestForPayment)))
+sort(intersect(colnames(reducedDomesticDeclarations), colnames(reducedPrepaidTravelCost)))
+
+sort(intersect(colnames(reducedRequestForPayment), colnames(reducedPrepaidTravelCost)))
+reducedRfpPre.union <- bind_rows(reducedRequestForPayment, reducedPrepaidTravelCost)
+reducedRfpPre.union.a2a <- a2a(reducedRfpPre.union)
+
+reducedIntDom.union <- bind_rows(reducedInternationalDeclarations, reducedDomesticDeclarations)
+reducedIntDom.union.a2a <- a2a(reducedIntDom.union)
+```
+
+```{r, echo= FALSE, eval=FALSE }
 names.1 <- colnames(EL.1)
 names.2 <- colnames(EL.2)
 
@@ -211,7 +220,7 @@ cat("Columns only in log.1:", names.1[!names.1 %in% names.2], "\n",
     "Columns only in log.2:", names.2[!names.2 %in% names.1])
 ```
 
-```{r Approach 0}
+```{r Approach 0, echo= FALSE, eval=FALSE}
 #Rule 1 not applicable
 
 #Rule 3
@@ -253,10 +262,14 @@ cat(c("Rule 3: ", "FirstWithdrawalAmount, NumberOfTerms, Accepted, MonthlyCost, 
 cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Action, LoanGoal, ApplicationType, RequestedAmount", "\n"))
 ```
 
+
+## Automated A2A Diagram Generation
+
+Not part of the research questions, but interesting to see how the graphing algorithm clusters attributes.
+
 ```{r Graphing bipartite}
-library(igraph)
-library(textshape)
-inc <- smolUnion.a2a
+
+inc <- reducedUnion.a2a #put any a2a matrix here to generate a2a diagram
 inc <- column_to_rownames(inc, 1)
 g <- graph_from_incidence_matrix(inc, multiple = FALSE)
 
@@ -274,6 +287,7 @@ plot(g, layout=-l[,2:1],
      margin = 0)
 ```
 
+This version doesn't plot the graph as bipartite graph (i.e., the structure of an A2A diagram is unenforced).
 
 ```{r Graphing naive}
 plot(g,
@@ -289,16 +303,10 @@ plot(g,
      margin = 0)
 
 ```
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 
 
-
-```{r RoadTraffictemp}
+```{r RoadTraffictemp, include = FALSE}
 RoadTraffic.a2a <- a2a(RoadTraffic)
 RoadTraffic.a2a.relative <- a2a(RoadTraffic, relative = TRUE)
-write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
+#write.csv(RoadTraffic.a2a, "roadTrafficA2A.csv")
 ```
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
