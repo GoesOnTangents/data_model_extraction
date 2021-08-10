@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Discovering a Global Data Model from Event Logs - Complementary Notebook"
 output:
   html_document:
     df_print: paged
@@ -42,14 +42,14 @@ replaceEmptyWithNA <- function(df, keepZeroes = FALSE) {
   df
 }
 
-mlad.setup <- function(a2a) {
+MLAD.Deep.setup <- function(a2a) {
   df <- slice(a2a, 0)
   df <- bind_rows(df, a2a %>% select(Activity))
   df[is.na(df)] <- 0
   df
 }
 
-mlad.fill <- function(scaffold, a2a) {
+MLAD.Deep.fill <- function(scaffold, a2a) {
   columns <- colnames(a2a)
   rows <- rownames(a2a)
   for(c in columns) {
@@ -59,11 +59,22 @@ mlad.fill <- function(scaffold, a2a) {
   }
   scaffold
 }
+
+MLAD <- function(a, b) {
+  sort(intersect(colnames(a), colnames(b)))
+}
 ```
 
+## Loading of Datasets
+
+For reproducibility, this section shows the datasets' preprocessing.
+ 
+### Offer Applications (BPI 2017)
+
+Meta-attributes are removed, empty strings are coerced to NA. Note, that this dataset makes a distinction between 0 and empty strings, so zeroes are not coerced to NA as they are a value.
 
 ```{r dataLoading Offers}
-# This dataset makes a distinction between NA and 0, so 0 stays.
+
 OfferApplications <- read.csv(here("data", "bpi17.csv"))
 OfferApplications <- dropSuperfluousAttributes(OfferApplications, c("Resource", "Timestamp", "Variant", "Lifecycle", "Event", "Action"))
 OfferApplications <- replaceEmptyWithNA(OfferApplications, keepZeroes = TRUE)
@@ -72,6 +83,9 @@ Offers <- dropSuperfluousAttributes(Offers, c("Resource", "Timestamp", "Variant"
 Offers <- replaceEmptyWithNA(Offers, keepZeroes = TRUE)
 ```
 
+### Permits (BPI 2020)
+
+Meta-attributes are removed, empty strings and zeroes are coerced to NA.
 
 ```{r dataLoading Permits}
 Permits <- read.csv(here("data", "PermitLog.csv"))
@@ -105,25 +119,38 @@ PrepaidTravelCost <- dropSuperfluousAttributes(PrepaidTravelCost)
 ```
 
 
-```{r dataLoading Traffic}
+```{r dataLoading Traffic, include = FALSE}
 RoadTraffic <- read.csv(here("data", "Road_Traffic_Fine_Management_Process.csv"))
 RoadTraffic <- replaceEmptyWithNA(RoadTraffic)
 RoadTraffic <- dropSuperfluousAttributes(RoadTraffic)
 ```
 
+## Dataset Transformations as Discussed in Main Paper
+
+### Offer Applications (BPI 2017)
+
+Event Logs are translated to A2A Matrices. MLAD Matrices are combined by union.
 
 ```{r bpi2017}
 OfferApplications.a2a <- a2a(OfferApplications)
 OfferApplications.a2a.relative <- a2a(OfferApplications, relative = TRUE)
 Offers.a2a <- a2a(Offers)
-Offers.a2a.relative <- a2a(Offers, relative = TRUE)
+#Offers.a2a.relative <- a2a(Offers, relative = TRUE)
+
+print("Class attributes found by MLAD:")
+MLAD(Offers, OfferApplications)
 
 Offer.union <- bind_rows(OfferApplications, Offers)
 Offer.union.a2a <- a2a(Offer.union)
 
-Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
+Offer.union.a2a.remaining <- Offer.union.a2a[ , !(colnames(Offer.union.a2a) %in% MLAD(Offers, OfferApplications))]
+print("Remaining attributes found by FCSE:")
+colnames(Offer.union.a2a.remaining)
+#Offer.union.a2a.relative <- a2a(Offer.union, relative = TRUE)
 ```
+### Permits (BPI 2020)
 
+Event logs are translated to A2A Matrices.
 
 ```{r bpi2020}
 Permits.a2a <- a2a(Permits, relative = TRUE)
@@ -134,8 +161,6 @@ RequestForPayment.a2a <- a2a(RequestForPayment, relative = TRUE)
 
 permits.union <- bind_rows(DomesticDeclarations, InternationalDeclarations, Permits, PrepaidTravelCost, RequestForPayment)
 permits.union.a2a <- a2a(permits.union)
-
-#permits.scaffold <- mla.setup(permits.union.a2a)
 
 permits.union.a2a.rel <- a2a(Permits, relative = TRUE)
 Permits.a2a <- a2a(Permits)
@@ -162,7 +187,7 @@ reducedPrepaidTravelCost.a2a <- a2a(reducedPrepaidTravelCost)
 ```
 
 
-## Multi-log Access Detection for the bpi 2020
+### Multi-log Access Detection for the bpi 2020
 ```{r bpi2020 mlad}
 sort(intersect(colnames(Permits), colnames(InternationalDeclarations)))
 sort(intersect(colnames(Permits), colnames(DomesticDeclarations)))
@@ -188,7 +213,7 @@ PrepaidRfp.union <- bind_rows(PrepaidTravelCost, RequestForPayment)
 PrepaidRfp.union.a2a <- a2a(PrepaidRfp.union)
 ```
 
-## Multi-log Access Detection in the Reduced BPI 2020 dataset. 
+### Multi-log Access Detection in the Reduced BPI 2020 dataset. 
 Reductions based on "Multi-perspective Analysis of Approval Processes based on Multiple Event Logs", by Bano et. al.
 ```{r reduced bpi2020 mlad}
 sort(intersect(colnames(reducedPermits), colnames(reducedInternationalDeclarations)))
@@ -263,7 +288,7 @@ cat(c("Rule 4: ", "Variant, Variant.index, lifecycle.transition, EventOrigin, Ac
 ```
 
 
-## Automated A2A Diagram Generation
+### Automated A2A Diagram Generation
 
 Not part of the research questions, but interesting to see how the graphing algorithm clusters attributes.
 
